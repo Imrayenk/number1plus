@@ -147,7 +147,8 @@ app.post('/api/items', authenticateToken, (req, res, next) => {
     upload.single('image')(req, res, (err) => {
         if (err) {
             console.error("Upload Error:", err);
-            return res.status(500).json({ error: "Image upload failed: " + err.message + ". Check Cloudinary settings." });
+            const errorDetails = err.message || JSON.stringify(err) || String(err);
+            return res.status(500).json({ error: "Image upload failed: " + errorDetails });
         }
         next();
     });
@@ -186,7 +187,8 @@ app.put('/api/items/:id', authenticateToken, (req, res, next) => {
     upload.single('image')(req, res, (err) => {
         if (err) {
             console.error("Upload Error:", err);
-            return res.status(500).json({ error: "Image upload failed: " + err.message + ". Check Cloudinary settings." });
+            const errorDetails = err.message || JSON.stringify(err) || String(err);
+            return res.status(500).json({ error: "Image upload failed: " + errorDetails });
         }
         next();
     });
