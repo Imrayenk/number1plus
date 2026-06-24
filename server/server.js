@@ -147,77 +147,71 @@ app.get('/api/menu', (req, res) => {
 });
 
 // Add Item (Protected)
-app.post('/api/items', authenticateToken, (req, res, next) => {
-    upload.single('image')(req, res, (err) => {
-        if (err) {
-            console.error("Upload Error:", err);
-            const errorDetails = err.message || JSON.stringify(err) || String(err);
-            return res.status(500).json({ error: "Image upload failed: " + errorDetails });
-        }
-        next();
-    });
-}, (req, res) => {
-    const { section_id, name, description, price, options } = req.body;
+app.post('/api/items', authenticateToken, async (req, res) => {
+    const { section_id, name, description, price, options, image_base64 } = req.body;
     let image_url = req.body.image_url || '';
 
-    if (req.file) {
-        // req.file.path contains the Cloudinary URL!
-        console.log("File uploaded to Cloudinary:", req.file.path);
-        image_url = req.file.path;
+    try {
+        if (image_base64) {
+            console.log("Uploading Base64 image to Cloudinary...");
+            const uploadRes = await cloudinary.uploader.upload(image_base64, {
+                folder: 'restaurant_menu'
+            });
+            image_url = uploadRes.secure_url;
+        }
+
+        const sql = "INSERT INTO items (section_id, name, description, price, image_url, options) VALUES (?, ?, ?, ?, ?, ?)";
+
+        let optionsString = options;
+        if (typeof options === 'object') {
+            optionsString = JSON.stringify(options);
+        }
+
+        const params = [section_id, name, description, price, image_url, optionsString];
+
+        db.run(sql, params, function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ id: this.lastID, ...req.body, image_url });
+        });
+    } catch (err) {
+        console.error("Upload Error:", err);
+        const errorDetails = err.message || JSON.stringify(err) || String(err);
+        return res.status(500).json({ error: "Image upload failed: " + errorDetails });
     }
-
-    // Default image if none provided
-    // if (!image_url) image_url = "https://placehold.co/600x400?text=No+Image";
-
-    const sql = "INSERT INTO items (section_id, name, description, price, image_url, options) VALUES (?, ?, ?, ?, ?, ?)";
-
-    // Options is a string in FormData if sent as string, or object if json.
-    // Multer/BodyParser might keep it as string if sent as string.
-    let optionsString = options;
-    if (typeof options === 'object') {
-        optionsString = JSON.stringify(options);
-    }
-
-    const params = [section_id, name, description, price, image_url, optionsString];
-
-    db.run(sql, params, function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ id: this.lastID, ...req.body, image_url });
-    });
 });
 
 // Update Item (Protected)
-app.put('/api/items/:id', authenticateToken, (req, res, next) => {
-    upload.single('image')(req, res, (err) => {
-        if (err) {
-            console.error("Upload Error:", err);
-            const errorDetails = err.message || JSON.stringify(err) || String(err);
-            return res.status(500).json({ error: "Image upload failed: " + errorDetails });
-        }
-        next();
-    });
-}, (req, res) => {
-    const { section_id, name, description, price, options } = req.body;
+app.put('/api/items/:id', authenticateToken, async (req, res) => {
+    const { section_id, name, description, price, options, image_base64 } = req.body;
     let image_url = req.body.image_url;
 
-    if (req.file) {
-        console.log("File uploaded to Cloudinary:", req.file.path);
-        image_url = req.file.path;
+    try {
+        if (image_base64) {
+            console.log("Uploading Base64 image to Cloudinary...");
+            const uploadRes = await cloudinary.uploader.upload(image_base64, {
+                folder: 'restaurant_menu'
+            });
+            image_url = uploadRes.secure_url;
+        }
+
+        const sql = "UPDATE items SET section_id = ?, name = ?, description = ?, price = ?, image_url = ?, options = ? WHERE id = ?";
+
+        let optionsString = options;
+        if (typeof options === 'object') {
+            optionsString = JSON.stringify(options);
+        }
+
+        const params = [section_id, name, description, price, image_url, optionsString, req.params.id];
+
+        db.run(sql, params, function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Updated", changes: this.changes });
+        });
+    } catch (err) {
+        console.error("Upload Error:", err);
+        const errorDetails = err.message || JSON.stringify(err) || String(err);
+        return res.status(500).json({ error: "Image upload failed: " + errorDetails });
     }
-
-    const sql = "UPDATE items SET section_id = ?, name = ?, description = ?, price = ?, image_url = ?, options = ? WHERE id = ?";
-
-    let optionsString = options;
-    if (typeof options === 'object') {
-        optionsString = JSON.stringify(options);
-    }
-
-    const params = [section_id, name, description, price, image_url, optionsString, req.params.id];
-
-    db.run(sql, params, function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Updated", changes: this.changes });
-    });
 });
 
 // Delete Item (Protected)

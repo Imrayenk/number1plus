@@ -164,25 +164,30 @@ const Admin = () => {
         }
 
         try {
-            const formData = new FormData();
-            formData.append('section_id', newItem.section_id);
-            formData.append('name', newItem.name);
-            formData.append('description', newItem.description);
-            formData.append('price', newItem.price);
+            const payload = {
+                section_id: newItem.section_id,
+                name: newItem.name,
+                description: newItem.description,
+                price: newItem.price,
+                options: newItem.options,
+                image_url: newItem.image_url
+            };
 
-            // Append options as string
-            formData.append('options', JSON.stringify(newItem.options));
-
+            // Convert image to Base64 if a file is selected
             if (newItem.imageFile) {
-                formData.append('image', newItem.imageFile);
-            } else {
-                formData.append('image_url', newItem.image_url);
+                const reader = new FileReader();
+                const base64Promise = new Promise((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
+                reader.readAsDataURL(newItem.imageFile);
+                payload.image_base64 = await base64Promise;
             }
 
             if (editingItemId) {
-                await updateItem(editingItemId, formData);
+                await updateItem(editingItemId, payload);
             } else {
-                await addItem(formData);
+                await addItem(payload);
             }
             resetForm(newItem.section_id);
             setRefreshTrigger(prev => prev + 1);
