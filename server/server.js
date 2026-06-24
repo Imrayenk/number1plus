@@ -19,8 +19,12 @@ app.use(express.json());
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Explicitly configure cloudinary (if URL is present, it uses it)
-cloudinary.config(true);
+// Explicitly configure cloudinary with fallback values if Vercel env vars fail
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'ddwjhbrv6',
+  api_key: process.env.CLOUDINARY_API_KEY || '545277563366435',
+  api_secret: process.env.CLOUDINARY_API_SECRET || 'R_PK-1gwb1w4r_tD-944JOECdl8'
+});
 
 
 // Multer Config (Use Cloudinary for Serverless)
