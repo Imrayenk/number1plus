@@ -16,8 +16,18 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "numberoneplusrayen";
 app.use(cors());
 app.use(express.json());
 
-// Multer Config (Use Memory Storage for Vercel/Serverless)
-const storage = multer.memoryStorage();
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Multer Config (Use Cloudinary for Serverless)
+// Cloudinary automatically picks up the CLOUDINARY_URL environment variable!
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'restaurant_menu',
+        allowedFormats: ['jpeg', 'png', 'jpg', 'webp'],
+    },
+});
 const upload = multer({ storage: storage });
 
 // Serve Uploads
@@ -134,16 +144,9 @@ app.post('/api/items', authenticateToken, upload.single('image'), (req, res) => 
     let image_url = req.body.image_url || '';
 
     if (req.file) {
-        // In a real app, upload req.file.buffer to S3/Cloudinary here.
-        // For Vercel demo without S3, we can't persist the file locally.
-        // We'll use a placeholder or just keep the provided URL if any.
-        console.log("File uploaded (in memory):", req.file.originalname, req.file.size);
-
-        // Use a placeholder if no external URL provided, or maybe user sent a URL too?
-        // For now, let's set a default if it's empty
-        if (!image_url) {
-            image_url = "https://placehold.co/600x400?text=Uploaded+Image";
-        }
+        // req.file.path contains the Cloudinary URL!
+        console.log("File uploaded to Cloudinary:", req.file.path);
+        image_url = req.file.path;
     }
 
     // Default image if none provided
@@ -172,9 +175,8 @@ app.put('/api/items/:id', authenticateToken, upload.single('image'), (req, res) 
     let image_url = req.body.image_url;
 
     if (req.file) {
-        const protocol = req.protocol;
-        const host = req.get('host');
-        image_url = `${protocol}://${host}/uploads/${req.file.filename}`;
+        console.log("File uploaded to Cloudinary:", req.file.path);
+        image_url = req.file.path;
     }
 
     const sql = "UPDATE items SET section_id = ?, name = ?, description = ?, price = ?, image_url = ?, options = ? WHERE id = ?";
