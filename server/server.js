@@ -19,6 +19,10 @@ app.use(express.json());
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
+// Explicitly configure cloudinary (if URL is present, it uses it)
+cloudinary.config(true);
+
+
 // Multer Config (Use Cloudinary for Serverless)
 // Cloudinary automatically picks up the CLOUDINARY_URL environment variable!
 const storage = new CloudinaryStorage({
@@ -139,7 +143,15 @@ app.get('/api/menu', (req, res) => {
 });
 
 // Add Item (Protected)
-app.post('/api/items', authenticateToken, upload.single('image'), (req, res) => {
+app.post('/api/items', authenticateToken, (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+        if (err) {
+            console.error("Upload Error:", err);
+            return res.status(500).json({ error: "Image upload failed: " + err.message + ". Check Cloudinary settings." });
+        }
+        next();
+    });
+}, (req, res) => {
     const { section_id, name, description, price, options } = req.body;
     let image_url = req.body.image_url || '';
 
@@ -170,7 +182,15 @@ app.post('/api/items', authenticateToken, upload.single('image'), (req, res) => 
 });
 
 // Update Item (Protected)
-app.put('/api/items/:id', authenticateToken, upload.single('image'), (req, res) => {
+app.put('/api/items/:id', authenticateToken, (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+        if (err) {
+            console.error("Upload Error:", err);
+            return res.status(500).json({ error: "Image upload failed: " + err.message + ". Check Cloudinary settings." });
+        }
+        next();
+    });
+}, (req, res) => {
     const { section_id, name, description, price, options } = req.body;
     let image_url = req.body.image_url;
 
