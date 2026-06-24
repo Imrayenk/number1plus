@@ -1,7 +1,7 @@
 const path = require('path');
 
-// Check if we are running with a DATABASE_URL (Supabase/Postgres)
-const isPostgres = !!process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL || "postgres://postgres.cbgdopatwrhbzhnlowdg:AoRclf8sp7tMqNOR@aws-1-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require";
+const isPostgres = !!DATABASE_URL;
 
 let db;
 
@@ -10,7 +10,7 @@ if (isPostgres) {
 
     // Remove query params from connection string to avoid SSL conflicts
     // (e.g. sslmode=require in URL can override rejectUnauthorized: false)
-    const connectionString = process.env.DATABASE_URL.split('?')[0];
+    const connectionString = DATABASE_URL.split('?')[0];
 
     const pool = new Pool({
         connectionString: connectionString,
